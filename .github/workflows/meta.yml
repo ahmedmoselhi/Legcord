@@ -39,6 +39,11 @@ jobs:
                   gh release upload "${{ github.event.release.tag_name }}" meta/app.legcord.Legcord.metainfo.xml
 
                   git add meta/app.legcord.Legcord.metainfo.xml
+                  if git diff --cached --quiet; then
+                      echo "No metainfo updates detected; skipping commit and push."
+                      exit 0
+                  fi
+
                   git commit -m "metainfo: add entry for ${{ github.event.release.tag_name }}"
                   git push origin HEAD:dev
               env:
