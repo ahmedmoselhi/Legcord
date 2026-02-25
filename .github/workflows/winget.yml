@@ -2,6 +2,9 @@ name: Publish to WinGet
 on:
     release:
         types: [released]
+permissions:
+    contents: write
+
 jobs:
     publish:
         runs-on: windows-latest
@@ -10,4 +13,4 @@ jobs:
               with:
                 identifier: smartfrigde.Legcord
                 installers-regex: '-win-\w+\.exe$'
-                token: ${{secrets.PUBLIC_REPO_READ}}
+                token: ${{ secrets.GITHUB_TOKEN }}
