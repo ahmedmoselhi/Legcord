@@ -14,6 +14,7 @@ jobs:
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
           GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          MACOS_SIGN_PASS: ${{ secrets.MACOS_SIGN_PASS }}
 
         steps:
             - name: Checkout code
@@ -50,15 +51,21 @@ jobs:
                   key: electron-zips.${{matrix.os}}
 
             # Sadly, it makes more sense to separate builds per platform
-            - name: Build Electron for MacOS (DMG & ZIP)
-              if: matrix.os == 'macos-latest'
+            - name: Build Electron for MacOS (DMG & ZIP, signed)
+              if: matrix.os == 'macos-latest' && env.MACOS_SIGN_PASS != ''
               run: pnpm electron-builder --universal -m zip dmg
               env:
                 CSC_LINK: "https://legcord.app/NewSign.p12"
-                CSC_KEY_PASSWORD: ${{ secrets.MACOS_SIGN_PASS }}
+                CSC_KEY_PASSWORD: ${{ env.MACOS_SIGN_PASS }}
                 APPLE_ID: ${{secrets.APPLE_ID}}
                 APPLE_APP_SPECIFIC_PASSWORD: ${{secrets.APPLE_ID_PASSWORD}}
                 APPLE_TEAM_ID: ${{secrets.APPLE_TEAM_ID}}
+
+            - name: Build Electron for MacOS (DMG & ZIP, unsigned fallback)
+              if: matrix.os == 'macos-latest' && env.MACOS_SIGN_PASS == ''
+              run: pnpm electron-builder --universal -m zip dmg
+              env:
+                CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
             - name: Build Electron for Windows (NSIS, AppX, & ZIP)
               if: matrix.os == 'windows-latest'
@@ -75,9 +82,9 @@ jobs:
                   key: electron-zips.${{matrix.os}}
 
             - name: Collect artifacts
-              run: 
-                mkdir artifacts |
-                find dist/. -maxdepth 1 -type f -exec mv {} artifacts \;
+              run: |
+                mkdir -p artifacts
+                find dist -maxdepth 1 -type f -exec mv {} artifacts/ \;
               shell: bash
             
             - name: Upload artifactsstable
